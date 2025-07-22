@@ -33,5 +33,10 @@ print(f"Eşleşen kayıt sayısı: {len(matches)}")
 for i,idx in enumerate(matches.index):
     if i >= 5:
         break
-    print(f"Eşleşen kayıt: \n{dfA.loc[idx[0]]} \n----------------ile---------------- \n{dfB.loc[idx[1]]} \n Skor: {matches.loc[idx].sum()} \n\n\n")
+    print(f"Eşleşen kayıt: "
+          f"\n{dfA.loc[idx[0]]} "
+          f"\n----------------ile----------------"
+          f"\n{dfB.loc[idx[1]]} "
+          f"\n Skor: {matches.loc[idx].sum()} "
+          f"\n\n\n")
 
