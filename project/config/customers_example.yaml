@@ -1,0 +1,61 @@
+# Müşteri Veritabanı Eşleştirme Örneği
+# E-ticaret + CRM sistem entegrasyonu
+
+project_name: "Customer Database Matching"
+description: "E-ticaret sistemi ile CRM sistemindeki müşteri kayıtlarını eşleştirme"
+
+source_database:
+  path: "../data/ecommerce.db"
+  table: "customers"
+  columns:
+    id: "customer_id"
+    name: "full_name"
+    email: "email_address"
+    phone: "phone_number"
+    address: "home_address"
+
+target_database:
+  path: "../data/crm.db"
+  table: "clients"
+  columns:
+    id: "client_id"
+    name: "client_name"
+    email: "email"
+    phone: "mobile"
+    address: "address"
+
+recordlinkage_config:
+  indexing:
+    method: "block"        # block, sortedneighbourhood, full
+    key: "name"            # Hangi alana göre bloklanacak
+  
+  comparison:
+    # Email - Kesin eşleşme (en güvenilir)
+    - field: "email"
+      method: "exact"
+    
+    # İsim - Bulanık eşleştirme
+    - field: "name"
+      method: "string"
+      algorithm: "jarowinkler"  # jarowinkler, levenshtein, jaro
+      threshold: 0.85
+    
+    # Telefon - Kesin eşleşme
+    - field: "phone"
+      method: "exact"
+    
+    # Adres - Bulanık eşleştirme (opsiyonel)
+    - field: "address"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.75
+  
+  classification:
+    method: "threshold"    # threshold, ecm, svm, kmeans
+    threshold: 0.7         # 0.0 - 1.0 arası
+
+output:
+  save_to_db: true
+  results_table: "customer_matches"
+  export_csv: false
+  csv_path: "../results/customer_matches.csv"
