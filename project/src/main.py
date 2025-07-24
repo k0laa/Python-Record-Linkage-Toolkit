@@ -23,6 +23,7 @@ class LinkageCoordinator:
         self.target_config = self.config_reader.get_target_database()
         self.linkage_config = self.config_reader.get_recordlinkage_config()
         self.output_config = self.config_reader.get_output_config()
+        self.results_db_path = self.config_reader.get_results_database_path()
 
         print("Coordinator ready")
 
@@ -34,7 +35,7 @@ class LinkageCoordinator:
 
         # Database bağlantıları test et
         try:
-            self.db_manager.connect_databases(self.source_config, self.target_config)
+            self.db_manager.connect_databases(self.source_config, self.target_config, self.results_db_path)
 
             self.db_manager.validate_table_schema(self.source_config, self.db_manager.source_connection)
             self.db_manager.validate_table_schema(self.target_config, self.db_manager.target_connection)
@@ -95,11 +96,11 @@ class LinkageCoordinator:
             if self.output_config.get('save_to_db', True):
                 table_name = self.output_config.get('results_table', 'match_results')
                 self.db_manager.save_results(results_df, table_name)
-                saved_files['database'] = f"data/results.db -> {table_name}"
+                saved_files['database'] = f"{self.results_db_path} -> {table_name}"
 
             # CSV'ye export et
             if self.output_config.get('export_csv', True):
-                csv_path = self.output_config.get('csv_path', 'results/linkage_results.csv')
+                csv_path = self.output_config.get('csv_path', '../results/linkage_results.csv')
                 self.db_manager.export_to_csv(results_df, csv_path)
                 saved_files['csv'] = csv_path
 
@@ -167,17 +168,17 @@ class LinkageCoordinator:
             report_content += f"- **Classification**: {self.linkage_config.get('classification', {})}\n"
 
             # Raporu kaydet
-            os.makedirs('results', exist_ok=True)
+            os.makedirs('../results', exist_ok=True)
             report_path = f"../results/linkage_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
 
             with open(report_path, 'w', encoding='utf-8') as f:
                 f.write(report_content)
 
-            print(f"✅ Rapor oluşturuldu: {report_path}")
+            print(f"Reports created: {report_path}")
             return report_path
 
         except Exception as e:
-            print(f"❌ Rapor oluşturma hatası: {e}")
+            print(f"Report crete ERROR: {e}")
             return ""
 
     def run_full_pipeline(self, data_limit: Optional[int] = None):

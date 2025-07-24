@@ -226,7 +226,7 @@ class RecordLinker:
             avg_score = self.matches.mean()
             max_score = self.matches.max()
             min_score = self.matches.min()
-            print(f"📊 Skor dağılımı: min={min_score:.3f}, avg={avg_score:.3f}, max={max_score:.3f}")
+            print(f"Skor dağılımı: min={min_score:.3f}, avg={avg_score:.3f}, max={max_score:.3f}")
 
         return self.matches
 

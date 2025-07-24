@@ -14,7 +14,7 @@ class ConfigReader:
         self._load_config()
         self._validate_config()
         
-        print("Konfigürasyon başarıyla yüklendi")
+        print("Config file read successfully")
     
     def _load_config(self):
         try:
@@ -113,6 +113,15 @@ class ConfigReader:
     
     def get_output_config(self):
         return self.config.get('output', {})
+    
+    def get_results_database_path(self):
+        output_config = self.get_output_config()
+        db_name = output_config.get('results_database_name', None)
+        if db_name:
+            return db_name
+        source_name = self.get_source_database()['path'].split('/')[-1].replace('.db', '')
+        target_name = self.get_target_database()['path'].split('/')[-1].replace('.db', '')
+        return f"../data/results/{source_name}_{target_name}_results.db"
     
     def get_project_info(self):
         return {
