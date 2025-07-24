@@ -1,0 +1,85 @@
+# Record Linkage Konfigürasyon Şablonu
+# Bu dosya farklı veri eşleştirme projeleri için kullanılabilir
+
+# PROJE BİLGİLERİ
+project_name: "Veri Eşleştirme Projesi"
+description: "İki veri kaynağındaki kayıtları eşleştirme projesi"
+
+# KAYNAK VERİTABANI
+source_database:
+  path: "../data/source_db.db"           # Veritabanı dosya yolu
+  table: "source_table"                  # Tablo adı
+  columns:                               # Kolon eşleştirmeleri (mantıksal_ad: gerçek_kolon_adı)
+    id: "id"                            # Benzersiz kimlik
+    name: "full_name"                   # İsim alanı
+    email: "email_address"              # E-posta alanı
+    phone: "phone_number"               # Telefon alanı
+    address: "address"                  # Adres alanı
+    # Diğer alanları buraya ekleyebilirsiniz
+
+# HEDEF VERİTABANI
+target_database:
+  path: "../data/target_db.db"          # Veritabanı dosya yolu
+  table: "target_table"                 # Tablo adı
+  columns:                              # Kolon eşleştirmeleri (mantıksal_ad: gerçek_kolon_adı)
+    id: "id"                           # Benzersiz kimlik
+    name: "name"                       # İsim alanı
+    email: "email"                     # E-posta alanı
+    phone: "phone"                     # Telefon alanı
+    address: "address"                 # Adres alanı
+    # Diğer alanları buraya ekleyebilirsiniz
+
+# RECORD LINKAGE KONFİGÜRASYONU
+recordlinkage_config:
+  
+  # İndeksleme ayarları
+  indexing:
+    method: "block"                     # Seçenekler: "block", "sortedneighbourhood", "full"
+    key: "name"                        # Hangi alana göre bloklanacak (block method için)
+    # window: 10                       # sortedneighbourhood için pencere boyutu
+  
+  # Karşılaştırma kuralları
+  comparison:
+    # E-posta karşılaştırması - Kesin eşleşme (yüksek güvenilirlik)
+    - field: "email"
+      method: "exact"                  # Seçenekler: "exact", "string", "numeric"
+      
+    # İsim karşılaştırması - Bulanık eşleştirme
+    - field: "name"
+      method: "string"                 # String karşılaştırma
+      algorithm: "jarowinkler"         # Seçenekler: "jarowinkler", "levenshtein", "jaro"
+      threshold: 0.85                  # Benzerlik eşiği (0.0 - 1.0)
+      
+    # Telefon karşılaştırması - Kesin eşleşme
+    - field: "phone"
+      method: "exact"
+      
+    # Adres karşılaştırması - Bulanık eşleştirme (opsiyonel)
+    - field: "address"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.75
+      
+    # Ek karşılaştırma kuralları buraya eklenebilir
+    # - field: "birth_date"
+    #   method: "exact"
+    # - field: "city"
+    #   method: "string"
+    #   algorithm: "jaro"
+    #   threshold: 0.9
+  
+  # Sınıflandırma ayarları
+  classification:
+    method: "threshold"                 # Seçenekler: "threshold", "ecm", "svm", "kmeans"
+    threshold: 0.7                     # Eşleşme eşiği (0.0 - 1.0)
+    # Diğer sınıflandırma yöntemleri için ek parametreler eklenebilir
+
+# ÇIKTI AYARLARI
+output:
+  # Veritabanına kaydetme
+  save_to_db: true                     # Sonuçları veritabanına kaydet
+  results_table: "match_results"       # Sonuç tablosu adı
+  
+  # CSV export ayarları
+  export_csv: true                     # CSV dosyasına export et
+  csv_path: "../results/linkage_results.csv"  # CSV dosya yolu
