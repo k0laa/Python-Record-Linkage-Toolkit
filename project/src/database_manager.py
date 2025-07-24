@@ -34,16 +34,12 @@ class DatabaseManager:
         print(f"Target database connected: {target_path}")
 
         # Results database (otomatik oluştur)
-        if results_db_path is None:
-            results_path = f"../data/results/results.db"
-        else:
-            results_path = results_db_path
-        
+        results_path = "../data/results.db"
         os.makedirs(os.path.dirname(results_path), exist_ok=True)
 
         self.results_connection = sqlite3.connect(results_path)
         self.results_connection.row_factory = sqlite3.Row
-        print(f"Results database: {results_path}")
+        print(f"✅ Results database: {results_path}")
 
     def disconnect_all(self):
         if self.source_connection:

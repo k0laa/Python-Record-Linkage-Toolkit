@@ -257,7 +257,7 @@ def main(config: str, limit: Optional[int] = None, debug: bool = False):
 
 
 if __name__ == "__main__":
-    config_path = '../config/customers_example.yaml'
+    config_path = '../config/tenzil.yaml'
     data_limit = None
     debug_mode = False
 
