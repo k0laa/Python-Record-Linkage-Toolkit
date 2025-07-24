@@ -78,6 +78,7 @@ recordlinkage_config:
 output:
   # Veritabanına kaydetme
   save_to_db: true                     # Sonuçları veritabanına kaydet
+  results_database_name: "linkage_results.db"  # Sonuç veritabanı adı
   results_table: "match_results"       # Sonuç tablosu adı
   
   # CSV export ayarları

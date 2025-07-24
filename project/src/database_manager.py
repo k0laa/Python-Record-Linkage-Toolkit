@@ -12,7 +12,7 @@ class DatabaseManager:
 
         print("Database magnager started")
 
-    def connect_databases(self, source_config, target_config):
+    def connect_databases(self, source_config, target_config, results_db_path=None):
         print("Connecting to databases...")
 
         # Source database
@@ -34,12 +34,16 @@ class DatabaseManager:
         print(f"Target database connected: {target_path}")
 
         # Results database (otomatik oluştur)
-        results_path = "../data/results.db"
+        if results_db_path is None:
+            results_path = "../data/results.db"
+        else:
+            results_path = results_db_path
+        
         os.makedirs(os.path.dirname(results_path), exist_ok=True)
 
         self.results_connection = sqlite3.connect(results_path)
         self.results_connection.row_factory = sqlite3.Row
-        print(f"✅ Results database: {results_path}")
+        print(f"Results database: {results_path}")
 
     def disconnect_all(self):
         if self.source_connection:
