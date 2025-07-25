@@ -1,114 +1,191 @@
-# Python Record Linkage Toolkit  
+# SQLite Record Linkage - Çoklu Database Sistemi
 
-## Python Record Linkage Toolkit Nedir?
->Python Record Linkage Toolkit, farklı veri kaynaklarındaki 
-> benzer ya da aynı varlıkları temsil eden kayıtları eşleştirmek 
-> kayıt bağlantısı yapmak) için kullanılan bir Python kütüphanesidir. 
-> Veri temizleme, indeksleme (örneğin blocking), 
-> öznitelik karşılaştırma (string benzerliği, tam eşleşme vb.) 
-> ve sınıflandırma (lojistik regresyon, EM algoritması gibi) 
-> adımlarını içeren tam bir iş akışı sunar. Bu sayede kullanıcılar 
-> hem veri setleri arası eşleştirme, hem de veri içi tekilleştirme 
-> işlemlerini kolayca gerçekleştirebilir. Kütüphane, özellikle küçük 
-> ve orta ölçekli projeler için uygundur ve pandas ile entegre 
-> çalışarak esnek ve güçlü bir çözüm sunar.
+## Proje Açıklaması
 
-## Kurulum
+Bu proje, **herhangi sayıdaki SQLite veritabanı** arasında recordlinkage toolkit kullanarak kapsamlı kayıt eşleştirmesi yapan gelişmiş bir sistemdir. Artık sadece YAML konfigürasyon dosyası yazarak:
 
-Python 3.6+ sürümleriyle uyumludur. Kurmak için:
-```bash
-pip install recordlinkage
+- **1 Database**: Deduplikasyon (tekrarlayan kayıt temizleme)
+- **2 Database**: Geleneksel ikili karşılaştırma  
+- **3+ Database**: Tüm kombinasyonları otomatik karşılaştırma
+
+## Yeni Özellikler ⭐️⭐️⭐️
+
+### Çoklu Database Desteği
+- **N tane database** verildiğinde tüm ikili kombinasyonları otomatik karşılaştırır
+- **Tek database** verildiğinde deduplikasyon yapar
+- **Sonuçlar** ayrı tablolarda kaydedilir (örn: `crm_ecommerce`, `crm_mobile_app`)
+- **Mevcut sistem** bozulmadan korunur - geriye dönük uyumlu
+
+### Akıllı Kombinasyon Mantığı
 ```
-Tüm ek özelliklerle birlikte kurmak için:
-
-```bash
-pip install recordlinkage['all']
+1 DB: customers_dedup
+2 DB: crm_ecommerce  
+3 DB: crm_ecommerce, crm_mobile, ecommerce_mobile
+4 DB: 6 farklı ikili kombinasyon
+5 DB: 10 farklı ikili kombinasyon
 ```
 
-## Kullanım
+## Proje Yapısı
 
-### İki Veri Kümesini Eşleştirme
+```
+project/
+├── src/                         
+│   ├── config_reader.py            # YAML okuyucu (çoklu DB desteği)
+│   ├── database_manager.py         # SQLite yönetimi (çoklu bağlantı)
+│   ├── record_linker.py            # recordlinkage engine (deduplikasyon)
+│   └── main.py                     # Ana çalışma dosyası (koordinatör)
+├── config/  # Konfigürasyon örnekleri
+│   ├──  templates/  # Çoklu database şablonları
+│   │    ├── multi_db_1_database.yaml    # Deduplikasyon örneği
+│   │    ├── multi_db_2_databases.yaml   # İkili karşılaştırma
+│   │    ├── multi_db_3_databases.yaml   # Üçlü sistem
+│   │    ├── multi_db_4_databases.yaml   # Dörtlü sistem
+│   │    ├── multi_db_5_databases.yaml   # Beşli sistem
+│   │    └── template.yaml      # Geleneksel örnek
+│   └── customers_example.yaml               # Geleneksel şablon
+├── data/                        # SQLite veritabanları
+└── results/                     # Sonuç dosyaları
+```
 
-Aşağıdaki örnek, iki veri kümesini belirli özniteliklere göre eşleştirmek için Python Record Linkage Toolkit'in nasıl kullanılacağını gösterir.
+## Hızlı Başlangıç
 
-#### Örnek Kod
+### Kurulum
+
+```bash
+  # Gerekli paketleri yükleyin
+  pip install -r requirements.txt
+```
+
+### Kullanım Örnekleri
+**`main.py` de main fonksiyonunda config dosyasını belirterek çalıştırabilirsiniz.**
+ 
 
 ```python
-import recordlinkage
-from recordlinkage.datasets import load_febrl4
-
-# Örnek veri setlerini yükle
-dfA, dfB = load_febrl4()
-
-# Aday kayıt çiftlerini oluştur
-indexer = recordlinkage.Index()
-indexer.block("given_name")  # 'given_name' sütununda eşleşenleri al
-candidate_links = indexer.index(dfA, dfB)
-
-# Kayıtları karşılaştır
-compare_cl = recordlinkage.Compare()
-compare_cl.exact("given_name", "given_name", label="given_name")
-compare_cl.string("surname", "surname", method="jarowinkler", threshold=0.85, label="surname")
-compare_cl.exact("date_of_birth", "date_of_birth", label="date_of_birth")
-compare_cl.exact("suburb", "suburb", label="suburb")
-compare_cl.exact("state", "state", label="state")
-compare_cl.string("address_1", "address_1", threshold=0.85, label="address_1")
-
-features = compare_cl.compute(candidate_links, dfA, dfB)
-
-# Basit eşleşme sınıflandırması: Toplam benzerlik skoru 3'ten büyük olanlar eşleşmiş kabul edilir
-matches = features[features.sum(axis=1) > 3]
-print(f"Eşleşen kayıt sayısı: {len(matches)}")
+# src/main.py
+if __name__ == "__main__":
+    config_path = "config/multi_db_1_database.yaml"
+```
+```bash
+  python src/main.py 
 ```
 
-Bu örnek, bloklama, karşılaştırma ve basit eşikleme yoluyla kayıtları eşleştirme sürecini gösterir.
+
+## Konfigürasyon Formatları
+
+### Yeni Çoklu Database Formatı
+
+```yaml
+# ÇOKLU VERİTABANI SİSTEMİ
+databases:
+  - name: "crm"
+    path: "../data/crm.db"
+    table: "customers"
+    columns:
+      id: "customer_id"
+      name: "full_name"
+      email: "email_address"
+      # ... diğer alanlar
+
+  - name: "ecommerce"  
+    path: "../data/ecommerce.db"
+    table: "users"
+    columns:
+      id: "user_id"
+      name: "display_name"
+      email: "email"
+      # ... diğer alanlar
+
+# Çıktı ayarları
+output:
+  save_to_db: true
+  results_database_path: "../data/multi_linkage_results.db"
+  table_prefix: "linkage"
+  export_csv: true
+  csv_base_path: "../results/multi"
+```
+
+### Klasik Format (Hala Destekleniyor)
+
+```yaml
+# KAYNAK VERİTABANI
+source_database:
+  path: "../data/source.db"
+  table: "customers"
+  # ...
+
+# HEDEF VERİTABANI  
+target_database:
+  path: "../data/target.db"
+  table: "users"
+  # ...
+```
 
 
+## Kullanılan Teknolojiler
 
-### Veri Tekilleştirme (Deduplication)
+- **Python 3.8+** - Ana dil
+- **recordlinkage** - Linkage library
+- **SQLite3** - Database
+- **PyYAML** - Configuration files
+- **Pandas** - Data manipulation
 
-Veri tekilleştirme, aynı varlığa ait tekrar eden kayıtların veri setinden tespit edilip birleştirilmesi işlemidir. Bu süreç özellikle kişisel kayıtlar gibi çoklu veri girişlerinin olduğu durumlarda önemlidir.
+## Record Linkage Detayları
 
-#### Süreç Adımları
-
-1. **İndeksleme (Indexing):**  
-   Veri kümesindeki kayıt çiftleri oluşturulur. Bu işlem, örneğin aynı isim (`given_name`) değerine sahip kayıtların bir araya getirilmesi gibi bloklama yöntemleriyle yapılır. Böylece karşılaştırılacak kayıt sayısı azaltılır.
-
-2. **Karşılaştırma (Comparison):**  
-   Oluşturulan aday kayıt çiftleri, isim, soyadı, doğum tarihi, adres gibi sütunlar üzerinde çeşitli karşılaştırma yöntemleri (kesin eşleşme, metin benzerliği gibi) kullanılarak değerlendirilir.
-
-3. **Sınıflandırma (Classification):**  
-   Karşılaştırma sonucu elde edilen skorlar toplanır ve belirlenen eşik değerin üzerinde olan kayıt çiftleri aynı varlık olarak kabul edilir.
-
-4. **Sonuç:**  
-   Tekilleştirilen kayıtlar, yinelenen verilerden arındırılmış daha temiz bir veri seti sağlar.
-
-#### Örnek Python Kodu
+### Indexing Methods
 
 ```python
-import recordlinkage
-from recordlinkage.datasets import load_febrl1
+# Block indexing
+indexer.block('email')
 
-# Veri kümesini yükle
-dfA = load_febrl1()
+# Sorted neighbourhood - Orta hız
+indexer.sortedneighbourhood('name', window=5)
 
-# 1. İndeksleme - aynı 'given_name' değerine sahip kayıtları grupla
-indexer = recordlinkage.Index()
-indexer.block(left_on='given_name')
-candidate_links = indexer.index(dfA)
+# Full comparison - Yavaş ama kapsamlı
+indexer.full()
+```
 
-# 2. Karşılaştırma - çeşitli alanlarda karşılaştırma yap
-compare_cl = recordlinkage.Compare()
-compare_cl.exact('given_name', 'given_name', label='given_name')
-compare_cl.string('surname', 'surname', method='jarowinkler', threshold=0.85, label='surname')
-compare_cl.exact('date_of_birth', 'date_of_birth', label='date_of_birth')
-compare_cl.exact('suburb', 'suburb', label='suburb')
-compare_cl.exact('state', 'state', label='state')
-compare_cl.string('address_1', 'address_1', threshold=0.85, label='address_1')
+### Comparison Functions
 
-features = compare_cl.compute(candidate_links, dfA)
+```python
+# Exact match
+compare.exact('email', 'email')
 
-# 3. Sınıflandırma - eşik üzerinde olan kayıt çiftlerini eşleşme olarak al
-matches = features[features.sum(axis=1) > 3]
+# String similarity
+compare.string('name', 'name', method='jarowinkler', threshold=0.85)
 
-print(f"Eşleşen kayıt sayısı: {len(matches)}")
+# Numeric comparisona
+compare.numeric('age', 'age', method='linear')
+```
+
+### Classification Methods
+
+```python
+# Threshold - Eşik değeri
+classifier = rl.ThresholdClassifier(0.7)
+
+# Machine Learning yaklaşımları
+classifier = rl.ECMClassifier()  # Expectation-Maximization
+classifier = rl.SVMClassifier()  # Support Vector Machine
+```
+
+
+
+### Karşılaşılabilecek Hatalar
+1. **Database bulunamadı**: Path kontrolü yapın
+2. **Sütun eşleşmiyor**: Schema validation loglarını kontrol edin  
+3. **Çok az eşleşme**: Threshold değerlerini düşürün
+4. **Çok yavaş**: Indexing metodunu 'block' yapın
+
+---
+
+### Kaynaklar
+
+- **recordlinkage docs**: https://recordlinkage.readthedocs.io/
+- **SQLite tutorial**: https://www.sqlitetutorial.net/
+- **YAML guide**: https://yaml.org/spec/
+
+
+
+## Lisans
+
+MIT License - Detaylar için LICENSE dosyasına bakın.
