@@ -1,0 +1,146 @@
+# 5 Database - Beşli Karşılaştırma Örneği
+# Enterprise düzeyinde tüm sistemleri kapsayan kapsamlı eşleştirme
+
+# PROJE BİLGİLERİ
+project_name: "Enterprise Veri Birleştirme Projesi"
+description: "Kurumsal tüm sistemlerdeki müşteri/kullanıcı verilerini master data yönetimi için birleştirme"
+
+# ÇOKLU VERİTABANI SİSTEMİ
+databases:
+  - name: "crm"
+    path: "../data/crm.db"
+    table: "customers"
+    columns:
+      id: "customer_id"
+      name: "full_name"
+      email: "email_address"
+      phone: "phone_number"
+      address: "billing_address"
+      city: "city"
+      country: "country"
+      company: "company_name"
+      tax_id: "tax_number"
+
+  - name: "ecommerce"
+    path: "../data/ecommerce.db"
+    table: "users"
+    columns:
+      id: "user_id"
+      name: "display_name"
+      email: "email"
+      phone: "mobile_phone"
+      address: "shipping_address"
+      city: "shipping_city"
+      country: "shipping_country"
+      company: "organization"
+      tax_id: "vat_number"
+
+  - name: "erp"
+    path: "../data/erp.db"
+    table: "vendors"
+    columns:
+      id: "vendor_id"
+      name: "vendor_name"
+      email: "contact_email"
+      phone: "contact_phone"
+      address: "business_address"
+      city: "business_city"
+      country: "business_country"
+      company: "legal_name"
+      tax_id: "tax_identification"
+
+  - name: "support_system"
+    path: "../data/support.db"
+    table: "customers"
+    columns:
+      id: "support_customer_id"
+      name: "customer_name"
+      email: "support_email"
+      phone: "support_phone"
+      address: "registered_address"
+      city: "registered_city"
+      country: "registered_country"
+      company: "company_name"
+      tax_id: "business_tax_id"
+
+  - name: "finance_system"
+    path: "../data/finance.db"
+    table: "accounts"
+    columns:
+      id: "account_id"
+      name: "account_holder"
+      email: "billing_email"
+      phone: "billing_phone"
+      address: "invoice_address"
+      city: "invoice_city"
+      country: "invoice_country"
+      company: "billing_company"
+      tax_id: "fiscal_number"
+
+# RECORD LINKAGE KONFİGÜRASYONU
+recordlinkage_config:
+  # İndeksleme ayarları
+  indexing:
+    method: "sortedneighbourhood"
+    key: "tax_id"  # Vergi numarası en benzersiz alan
+    window: 3
+  
+  # Karşılaştırma kuralları
+  comparison:
+    # Vergi numarası - En güvenilir kurumsal tanımlayıcı
+    - field: "tax_id"
+      method: "exact"
+    
+    # E-posta karşılaştırması
+    - field: "email"
+      method: "exact"
+      
+    # İsim/Şirket adı karşılaştırması
+    - field: "name"
+      method: "string"
+      algorithm: "jarowinkler"
+      threshold: 0.85
+      
+    # Telefon karşılaştırması
+    - field: "phone"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.80
+      
+    # Adres karşılaştırması
+    - field: "address"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.75
+      
+    # Şehir karşılaştırması
+    - field: "city"
+      method: "string"
+      algorithm: "jaro"
+      threshold: 0.90
+      
+    # Ülke karşılaştırması
+    - field: "country"
+      method: "exact"
+      
+    # Şirket karşılaştırması
+    - field: "company"
+      method: "string"
+      algorithm: "jarowinkler"
+      threshold: 0.85
+  
+  # Sınıflandırma ayarları
+  classification:
+    method: "threshold"
+    threshold: 0.70
+
+# ÇIKTI AYARLARI
+output:
+  # Veritabanına kaydetme
+  save_to_db: true
+  results_database_path: "../data/enterprise_master_linkage.db"
+  table_prefix: "enterprise"
+  
+  # CSV export ayarları
+  export_csv: true
+  csv_base_path: "../results/enterprise_linkage" 

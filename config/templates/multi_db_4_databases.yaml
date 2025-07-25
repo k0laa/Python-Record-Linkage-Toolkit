@@ -1,0 +1,96 @@
+# 3 Database - Üçlü Karşılaştırma Örneği
+# CRM, E-ticaret ve Mobil App kullanıcılarını eşleştirme
+
+# PROJE BİLGİLERİ
+project_name: "Omnichannel Müşteri Birleştirme Projesi"
+description: "CRM, e-ticaret ve mobil uygulama kullanıcılarını tek bir müşteri profili altında birleştirme"
+
+# ÇOKLU VERİTABANI SİSTEMİ
+databases:
+  - name: "ecommerce"
+    path: "../data/ecommerce.db"
+    table: "customers"
+    columns:
+      id: "customer_id"
+      name: "full_name"
+      email: "email_address"
+      phone: "phone_number"
+      address: "home_address"
+
+  - name: "crm"
+    path: "../data/crm.db"
+    table: "clients"
+    columns:
+      id: "client_id"
+      name: "client_name"
+      email: "email"
+      phone: "mobile"
+      address: "address"
+
+  - name: "febrl1"
+    path: "../data/febrl/febrl1.db"
+    table: "patients"
+    columns:
+      id: "street_number"
+      name: "given_name"
+      email: "address_1"
+      phone: "postcode"
+      address: "address_2"
+
+  - name: "febrl12"
+    path: "../data/febrl/febrl12.db"
+    table: "patients"
+    columns:
+      id: "street_number"
+      name: "given_name"
+      email: "address_1"
+      phone: "postcode"
+      address: "address_2"
+
+# RECORD LINKAGE KONFİGÜRASYONU
+recordlinkage_config:
+  # İndeksleme ayarları
+  # İndeksleme ayarları
+  indexing:
+    method: "block"
+    key: "email"  # E-posta ile blokla
+
+  # Karşılaştırma kuralları
+  comparison:
+    # E-posta karşılaştırması - Kesin eşleşme
+    - field: "email"
+      method: "exact"
+
+    # İsim karşılaştırması - Bulanık eşleştirme
+    - field: "name"
+      method: "string"
+      algorithm: "jarowinkler"
+      threshold: 0.80
+
+    # Telefon karşılaştırması
+    - field: "phone"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.85
+
+    # Adres karşılaştırması
+    - field: "address"
+      method: "string"
+      algorithm: "levenshtein"
+      threshold: 0.70
+
+  # Sınıflandırma ayarları
+  classification:
+    method: "threshold"
+    threshold: 0.75
+
+# ÇIKTI AYARLARI
+output:
+  # Veritabanına kaydetme
+  save_to_db: true
+  results_database_path: "../data/omnichannel_linkage.db"
+  table_prefix: "omni"
+
+  # CSV export ayarları
+  export_csv: true
+  csv_base_path: "../results/omnichannel"
