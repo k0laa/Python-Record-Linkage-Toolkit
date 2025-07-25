@@ -25,6 +25,27 @@ Tüm ek özelliklerle birlikte kurmak için:
 pip install recordlinkage['all']
 ```
 
+## Proje Yapısı
+
+
+```
+basics/                       # Temel recordlinkage örnekleri
+├──examples/
+│   ├──DataDeduplication.py   # Deduplikasyon örneği
+│   └──Link2Datasets.py       # İki veri seti karşılaştırma
+├──prototype/
+│   ├──data/
+│   │   ├──customers_a.csv    # Örnek müşteri verisi
+│   │   └──customers_b.csv    # İkinci müşteri verisi
+│   ├──data_loader.py         # Veri yükleyici
+│   ├──main.py                # Ana çalışma dosyası
+│   ├──preprocessor.py        # Ön işleme adımları
+│   ├──record_linker.py       # Recordlinkage motoru
+│   └──report_generator.py    # Sonuç raporlama
+└──README.md
+```
+
+
 ## Kullanım
 
 ### İki Veri Kümesini Eşleştirme

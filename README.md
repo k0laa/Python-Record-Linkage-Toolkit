@@ -28,23 +28,27 @@ Bu proje, **herhangi sayıdaki SQLite veritabanı** arasında recordlinkage tool
 ## Proje Yapısı
 
 ```
-project/
-├── src/                         
-│   ├── config_reader.py            # YAML okuyucu (çoklu DB desteği)
-│   ├── database_manager.py         # SQLite yönetimi (çoklu bağlantı)
-│   ├── record_linker.py            # recordlinkage engine (deduplikasyon)
-│   └── main.py                     # Ana çalışma dosyası (koordinatör)
-├── config/  # Konfigürasyon örnekleri
-│   ├──  templates/  # Çoklu database şablonları
-│   │    ├── multi_db_1_database.yaml    # Deduplikasyon örneği
-│   │    ├── multi_db_2_databases.yaml   # İkili karşılaştırma
-│   │    ├── multi_db_3_databases.yaml   # Üçlü sistem
-│   │    ├── multi_db_4_databases.yaml   # Dörtlü sistem
-│   │    ├── multi_db_5_databases.yaml   # Beşli sistem
-│   │    └── template.yaml      # Geleneksel örnek
+RecordLinkage/
+├── basics/                                  # Temel recordlinkage örnekleri
+├── src/                          
+│   ├── config_reader.py                     # YAML okuyucu (çoklu DB desteği)
+│   ├── database_manager.py                  # SQLite yönetimi (çoklu bağlantı)
+│   ├── record_linker.py                     # recordlinkage engine (deduplikasyon)
+│   └── main.py                              # Ana çalışma dosyası (koordinatör)
+├── config/                                  # Konfigürasyon örnekleri 
+│   ├──  templates/                          # Çoklu database şablonları
+│   │    ├── multi_db_1_database.yaml        # Deduplikasyon örneği
+│   │    ├── multi_db_2_databases.yaml       # İkili karşılaştırma
+│   │    ├── multi_db_3_databases.yaml       # Üçlü sistem
+│   │    ├── multi_db_4_databases.yaml       # Dörtlü sistem
+│   │    ├── multi_db_5_databases.yaml       # Beşli sistem
+│   │    └── template.yaml                   # Geleneksel örnek
 │   └── customers_example.yaml               # Geleneksel şablon
-├── data/                        # SQLite veritabanları
-└── results/                     # Sonuç dosyaları
+├── data/                                    # SQLite veritabanları
+├── results/                                 # Sonuç dosyaları
+├── requirements.txt                         # Gerekli Python paketleri
+└── README.md                                # Proje açıklaması ve kullanım kılavuzu
+
 ```
 
 ## Hızlı Başlangıç
