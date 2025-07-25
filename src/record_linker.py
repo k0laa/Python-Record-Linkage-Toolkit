@@ -1,6 +1,8 @@
 import pandas as pd
 import recordlinkage as rl
 import time
+from typing import Dict
+from itertools import combinations
 
 
 class RecordLinker:
@@ -359,3 +361,200 @@ class RecordLinker:
             stats['blocking_efficiency'] = (1 - stats['total_candidate_pairs'] / self._total_possible_pairs) * 100
 
         return stats
+
+    def run_deduplication(self, df_data, data_name: str = "data"):
+        print(f"DEDUPLICATION STARTING for {data_name}")
+        print("=" * 60)
+
+        total_start = time.time()
+
+        try:
+            print("\nStep 1: Indexing for Deduplication")
+            self.setup_indexing()
+            self.generate_candidate_pairs_dedup(df_data)
+
+            print("\nStep 2: Comparison")
+            self.setup_comparison()
+            self.compute_features_dedup(df_data)
+
+            print("\nStep 3: Classification")
+            self.setup_classification()
+            self.classify_matches()
+
+            print("\nStep 4: Result Formatting")
+            results_df = self.format_results_dedup(df_data, data_name)
+
+            total_elapsed = time.time() - total_start
+
+            print("\n" + "=" * 60)
+            print("DEDUPLICATION COMPLETED!")
+            print(f"Total duration: {total_elapsed:.2f} seconds")
+            print(f"Founded duplicates: {len(results_df)}")
+
+            if not results_df.empty:
+                quality_summary = results_df['match_quality'].value_counts()
+                print(f"Quality Distribution: {quality_summary.to_dict()}")
+
+            return results_df
+
+        except Exception as e:
+            print(f"\nDeduplication ERROR: {e}")
+            raise
+
+    def generate_candidate_pairs_dedup(self, df_data):
+        print("Generating candidate pairs for deduplication...")
+
+        if not self.indexer:
+            raise ValueError("Indexer not set up")
+
+        start_time = time.time()
+
+        self.candidate_links = self.indexer.index(df_data)
+
+        elapsed = time.time() - start_time
+        total_possible = len(df_data) * (len(df_data) - 1) // 2  # n*(n-1)/2
+
+        print(f"Candidate pairs generated: {len(self.candidate_links)}")
+        print(f"Total possible pairs: {total_possible}")
+        print(f"Blocking reduction: %{((total_possible - len(self.candidate_links)) / total_possible * 100):.1f}")
+        print(f"Generation time: {elapsed:.2f} seconds")
+
+        self._total_possible_pairs = total_possible
+        return self.candidate_links
+
+    def compute_features_dedup(self, df_data):
+        print("Computing features for deduplication...")
+
+        if not self.compare_cl:
+            raise ValueError("Comparison not set up")
+
+        if self.candidate_links is None or len(self.candidate_links) == 0:
+            print("No candidate pairs to compare")
+            self.features = pd.DataFrame()
+            return self.features
+
+        start_time = time.time()
+
+        self.features = self.compare_cl.compute(self.candidate_links, df_data)
+
+        elapsed = time.time() - start_time
+
+        print(f"Features computed: {len(self.features)} pairs, {len(self.features.columns)} features")
+        print(f"Computation time: {elapsed:.2f} seconds")
+
+        return self.features
+
+    def format_results_dedup(self, df_data, data_name: str):
+        print("Formatting deduplication results...")
+
+        if self.matches is None or len(self.matches) == 0:
+            print("No matches found")
+            return pd.DataFrame()
+
+        results = []
+
+        for (idx1, idx2) in self.matches.index:
+            record1 = df_data.loc[idx1]
+            record2 = df_data.loc[idx2]
+
+            feature_row = self.features.loc[(idx1, idx2)]
+            total_score = feature_row.sum()
+
+            max_score = len(feature_row)
+            confidence_score = total_score / max_score if max_score > 0 else 0
+
+            if confidence_score >= 0.9:
+                confidence = 'HIGH'
+            elif confidence_score >= 0.7:
+                confidence = 'MEDIUM'
+            else:
+                confidence = 'LOW'
+
+            result = {
+                f'{data_name}_id_1': idx1,
+                f'{data_name}_id_2': idx2,
+                'total_score': total_score,
+                'confidence': confidence
+            }
+
+            # İlk kayıt bilgileri (source olarak)
+            for col in df_data.columns:
+                result[f'{data_name}_1_{col}'] = record1[col]
+
+            # İkinci kayıt bilgileri (target olarak)
+            for col in df_data.columns:
+                result[f'{data_name}_2_{col}'] = record2[col]
+
+            # Feature skorları
+            for feature_name, score in feature_row.items():
+                result[f'feature_{feature_name}'] = score
+
+            results.append(result)
+
+        results_df = pd.DataFrame(results)
+
+        if not results_df.empty:
+            # Skorlara göre sırala
+            results_df = results_df.sort_values(['total_score', 'match_quality'], ascending=[False, False])
+
+        print(f"Results formatted: {len(results_df)} matches")
+        return results_df
+
+    def run_multi_database_linkage(self, data_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+        print(f"MULTI-DATABASE LINKAGE STARTING ({len(data_dict)} databases)")
+        print("=" * 60)
+
+        db_names = list(data_dict.keys())
+        all_results = {}
+
+        # 1. Tek database deduplikasyonu
+        if len(db_names) == 1:
+            db_name = db_names[0]
+            print(f"\nRunning deduplication for single database: {db_name}")
+            results = self.run_deduplication(data_dict[db_name], db_name)
+            all_results[f"{db_name}_dedup"] = results
+            return all_results
+
+        # 2. İkili karşılaştırmalar
+        print(f"\nRunning pairwise comparisons...")
+        for db1, db2 in combinations(db_names, 2):
+            comparison_name = f"{db1}_{db2}"
+            print(f"\n🔗 Comparing: {db1} ↔ {db2}")
+            
+            try:
+                results = self.run_full_linkage(data_dict[db1], data_dict[db2])
+                # Sonuç sütun isimlerini güncelle
+                results = self._update_result_column_names(results, db1, db2)
+                all_results[comparison_name] = results
+                print(f"{comparison_name}: {len(results)} matches found")
+            except Exception as e:
+                print(f"{comparison_name}: {e}")
+                all_results[comparison_name] = pd.DataFrame()
+
+        # 3. Üçlü ve daha fazla karşılaştırmalar
+        if len(db_names) >= 3:
+            print(f"\nMulti-way comparisons (3+ databases) will be added in future versions...")
+            #  Üçlü karşılaştırma mantığı eklenebilir
+
+        print(f"\nTotal comparisons completed: {len(all_results)}")
+        return all_results
+
+    def _update_result_column_names(self, results_df: pd.DataFrame, db1_name: str, db2_name: str) -> pd.DataFrame:
+        if results_df.empty:
+            return results_df
+
+        # Sütun ismlerini güncelle
+        column_mapping = {}
+        
+        for col in results_df.columns:
+            if col.startswith('source_'):
+                new_col = col.replace('source_', f'{db1_name}_')
+                column_mapping[col] = new_col
+            elif col.startswith('target_'):
+                new_col = col.replace('target_', f'{db2_name}_')
+                column_mapping[col] = new_col
+        
+        if column_mapping:
+            results_df = results_df.rename(columns=column_mapping)
+        
+        return results_df
